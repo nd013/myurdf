@@ -3,71 +3,92 @@
 
   <!-- =========================================================
        AMR ROBOT - URDF XACRO
-       PIDPEN Robotics Lab
-       ROS2 Jazzy
+       PIDPEN Robotics Lab | ROS2 Jazzy
 
-       Robot Structure:
-         base_footprint
-         └── base_link  (chassis frame)
-             ├── left_wheel_joint       → left_wheel
-             ├── right_wheel_joint      → right_wheel
-             ├── front_left_caster_joint  → front_left_caster
-             ├── front_right_caster_joint → front_right_caster
-             ├── rear_left_caster_joint   → rear_left_caster
-             └── rear_right_caster_joint  → rear_right_caster
+       All values extracted directly from STL geometry + SolidWorks
+       mass properties. No guessing from drawings.
 
-       All dimensions in meters, mass in kg, inertia in kg·m²
-       Coordinate system: ROS REP-103
-         X = forward
-         Y = left
-         Z = up
+       STL coordinate mapping (SolidWorks export axes):
+         STL-X = 0→445mm = robot Y axis (width, left-right)
+         STL-Y = 0→80mm  = robot Z axis (height, up-down)
+         STL-Z = 0→500mm = robot X axis (length, front-back)
+
+       base_link origin = geometric center of chassis STL
+         STL center: (222.5, 40.0, 250.0)
+         In robot frame: X=0, Y=0, Z=0
+
+       ROS REP-103:  X=forward  Y=left  Z=up
   ========================================================= -->
 
   <!-- =========================================================
-       PROPERTIES
+       BASE LINK PROPERTIES
+       From STL: 445mm(Y) × 80mm(Z) × 500mm(X)
+       Plate: STL-Y 60→80mm (20mm thick)
+       Brackets + caster zone: STL-Y 0→60mm (60mm below plate)
   ========================================================= -->
-
-  <!-- Chassis -->
-  <xacro:property name="chassis_length"   value="0.250"/>
-  <xacro:property name="chassis_width"    value="0.445"/>
-  <xacro:property name="chassis_height"   value="0.020"/>
-  <xacro:property name="chassis_mass"     value="5.130"/>
-
-  <!-- Drive wheels -->
-  <xacro:property name="wheel_radius"     value="0.0625"/>
-  <xacro:property name="wheel_thickness"  value="0.030"/>
-  <xacro:property name="wheel_mass"       value="0.370"/>
-  <xacro:property name="wheel_x_offset"   value="0.0"/>
-  <xacro:property name="wheel_y_offset"   value="0.2125"/>
-  <xacro:property name="wheel_z_offset"   value="0.0"/>
-
-  <!-- Caster wheels -->
-  <xacro:property name="caster_radius"    value="0.0225"/>
-  <xacro:property name="caster_mass"      value="0.163"/>
-  <xacro:property name="caster_x_offset"  value="0.140"/>
-  <xacro:property name="caster_y_offset"  value="0.190"/>
-  <xacro:property name="caster_z_offset"  value="-0.0398"/>
+  <xacro:property name="base_length"    value="0.500"/>   <!-- X: 500mm STL-Z -->
+  <xacro:property name="base_width"     value="0.445"/>   <!-- Y: 445mm STL-X -->
+  <xacro:property name="base_height"    value="0.080"/>   <!-- Z: 80mm  STL-Y total -->
+  <xacro:property name="base_mass"      value="5.130"/>
 
   <!-- =========================================================
-       MATERIAL DEFINITIONS
-  ========================================================= -->
+       DRIVE WHEEL PROPERTIES
+       From STL: thickness=35mm(STL-X), diameter=125mm(STL-Y/Z)
+       Wheel center in STL: X=17.5, Y=62.5, Z=62.5
+       Spin axis = STL-X axis
 
+       Joint origin relative to base_link center:
+         robot_X = 0.0       (mid-length, STL-Z=250 → offset=0)
+         robot_Y = ±0.2125m  (axle center: 227.5mm outer face - 15mm half-thickness)
+         robot_Z = 0.0       (axle at base_link center height)
+  ========================================================= -->
+  <xacro:property name="wheel_radius"   value="0.0625"/>  <!-- 125mm/2 from STL -->
+  <xacro:property name="wheel_length"   value="0.035"/>   <!-- 35mm from STL (includes hub) -->
+  <xacro:property name="wheel_mass"     value="0.370"/>
+  <xacro:property name="wheel_x"        value="0.0"/>
+  <xacro:property name="wheel_y"        value="0.2125"/>  <!-- (455/2 - 35/2) = 212.5mm -->
+  <xacro:property name="wheel_z"        value="0.0"/>
+
+  <!-- =========================================================
+       CASTER WHEEL PROPERTIES
+       From STL: diameter=45mm(STL-X/Z), height=79.5mm(STL-Y)
+       Caster holes in base_link at (from STL analysis):
+         front: STL-Z=52.5  → robot_X = 52.5 - 250 = -197.5mm → ±0.1975m
+         rear:  STL-Z=447.5 → robot_X = 447.5 - 250 = +197.5mm
+         left:  STL-X=60    → robot_Y = 222.5 - 60  = +162.5mm → ±0.1625m
+         right: STL-X=385   → robot_Y = 222.5 - 385 = -162.5mm
+
+       Caster ball center Z:
+         Plate top = STL-Y=80 → robot_Z = +40mm from base_link center
+         Caster housing total = 99.5mm below plate top
+         Ball center = plate_top - (99.5 - 22.5) = 40 - 77 = -37mm
+         robot_Z = -0.037m
+  ========================================================= -->
+  <xacro:property name="caster_radius"  value="0.0225"/>  <!-- 45mm/2 from STL -->
+  <xacro:property name="caster_mass"    value="0.163"/>
+  <xacro:property name="caster_x"       value="0.1975"/>  <!-- ±197.5mm from center -->
+  <xacro:property name="caster_y"       value="0.1625"/>  <!-- ±162.5mm from center -->
+  <xacro:property name="caster_z"       value="-0.037"/>  <!-- ball center below base_link -->
+
+  <!-- =========================================================
+       MATERIALS
+  ========================================================= -->
   <material name="aluminium">
     <color rgba="0.75 0.75 0.75 1.0"/>
   </material>
-
   <material name="rubber_black">
     <color rgba="0.1 0.1 0.1 1.0"/>
   </material>
-
-  <material name="grey">
-    <color rgba="0.6 0.6 0.6 1.0"/>
+  <material name="grey_plastic">
+    <color rgba="0.6 0.6 0.6 0.8"/>
   </material>
 
   <!-- =========================================================
-       DRIVE WHEEL MACRO
+       MACRO: DRIVE WHEEL
+       params:
+         name   = link name (wheel_left / wheel_right)
+         y_sign = +1 left, -1 right
   ========================================================= -->
-
   <xacro:macro name="drive_wheel" params="name y_sign">
 
     <link name="${name}">
@@ -79,27 +100,38 @@
         <material name="rubber_black"/>
       </visual>
       <collision>
+        <!-- Cylinder primitive aligned with wheel spin axis -->
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <!-- Simplified cylinder for collision -->
-          <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+          <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
         </geometry>
       </collision>
       <inertial>
+        <!--
+          CoM at wheel geometric center
+          SolidWorks (g·mm² ÷ 1,000,000 = kg·m²):
+            Lxx=719243.09 → 0.000719  [spin axis]
+            Lyy=387910.92 → 0.000388
+            Lzz=387910.92 → 0.000388
+          All products of inertia = 0
+        -->
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="${wheel_mass}"/>
-        <!-- SolidWorks CoM values (g·mm² ÷ 1e6 = kg·m²) -->
-        <!-- Lxx=719243.09 Lyy=387910.92 Lzz=387910.92 -->
         <inertia ixx="0.000719" ixy="0.0" ixz="0.0"
                  iyy="0.000388" iyz="0.0"
                  izz="0.000388"/>
       </inertial>
     </link>
 
+    <!--
+      rpy="${pi/2} 0 0" rotates wheel frame so cylinder axis (STL-X)
+      aligns with robot Y axis (left-right = axle direction).
+      Wheel then spins about local Z → axis xyz="0 0 1"
+    -->
     <joint name="${name}_joint" type="continuous">
       <parent link="base_link"/>
       <child  link="${name}"/>
-      <origin xyz="${wheel_x_offset} ${y_sign * wheel_y_offset} ${wheel_z_offset}"
+      <origin xyz="${wheel_x} ${y_sign * wheel_y} ${wheel_z}"
               rpy="${pi/2} 0 0"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.01" friction="0.1"/>
@@ -108,9 +140,12 @@
   </xacro:macro>
 
   <!-- =========================================================
-       CASTER WHEEL MACRO
+       MACRO: CASTER WHEEL
+       params:
+         name   = link name
+         x_sign = +1 front, -1 rear
+         y_sign = +1 left,  -1 right
   ========================================================= -->
-
   <xacro:macro name="caster_wheel" params="name x_sign y_sign">
 
     <link name="${name}">
@@ -119,51 +154,58 @@
         <geometry>
           <mesh filename="package://amr_description/meshes/${name}.STL"/>
         </geometry>
-        <material name="grey"/>
+        <material name="grey_plastic"/>
       </visual>
       <collision>
+        <!-- Sphere for smooth passive rolling in simulation -->
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <!-- Simplified sphere for collision -->
           <sphere radius="${caster_radius}"/>
         </geometry>
       </collision>
       <inertial>
+        <!--
+          CoM at caster ball center
+          SolidWorks (g·mm² ÷ 1,000,000 = kg·m²):
+            Lxx=94899.90 → 0.000095
+            Lyy=39844.80 → 0.000040
+            Lzz=94899.90 → 0.000095
+          All products of inertia = 0
+        -->
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="${caster_mass}"/>
-        <!-- SolidWorks CoM values (g·mm² ÷ 1e6 = kg·m²) -->
-        <!-- Lxx=94899.90 Lyy=39844.80 Lzz=94899.90 -->
         <inertia ixx="0.000095" ixy="0.0" ixz="0.0"
                  iyy="0.000040" iyz="0.0"
                  izz="0.000095"/>
       </inertial>
     </link>
 
+    <!-- Fixed joint — passive caster, no actuation -->
     <joint name="${name}_joint" type="fixed">
       <parent link="base_link"/>
       <child  link="${name}"/>
-      <origin xyz="${x_sign * caster_x_offset} ${y_sign * caster_y_offset} ${caster_z_offset}"
+      <origin xyz="${x_sign * caster_x} ${y_sign * caster_y} ${caster_z}"
               rpy="0 0 0"/>
     </joint>
 
   </xacro:macro>
 
   <!-- =========================================================
-       BASE FOOTPRINT
+       BASE FOOTPRINT — ground projection, required by Nav2
   ========================================================= -->
-
   <link name="base_footprint"/>
 
   <joint name="base_footprint_joint" type="fixed">
     <parent link="base_footprint"/>
     <child  link="base_link"/>
+    <!-- Lift base_link by wheel_radius so wheels touch ground -->
     <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0"/>
   </joint>
 
   <!-- =========================================================
        BASE LINK
+       Origin = geometric center of chassis STL bounding box
   ========================================================= -->
-
   <link name="base_link">
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -173,18 +215,29 @@
       <material name="aluminium"/>
     </visual>
     <collision>
+      <!--
+        Box covers full chassis including brackets
+        X=500mm  Y=445mm  Z=80mm (plate 20mm + bracket zone 60mm)
+      -->
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <!-- Simplified box for collision -->
-        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+        <box size="${base_length} ${base_width} ${base_height}"/>
       </geometry>
     </collision>
     <inertial>
-      <!-- CoM from SolidWorks: X=0, Y=-1.04mm, Z=0 -->
+      <!--
+        CoM from SolidWorks (mm → m):
+          X= 0.00mm → 0.00000m
+          Y=-1.04mm → -0.00104m
+          Z= 0.00mm → 0.00000m
+        Inertia at CoM (g·mm² ÷ 1,000,000 = kg·m²):
+          Lxx=127429709.05 → 0.127430
+          Lyy=241607887.10 → 0.241608
+          Lzz=115733366.82 → 0.115733
+          All products = 0 (symmetric assembly)
+      -->
       <origin xyz="0.0 -0.00104 0.0" rpy="0 0 0"/>
-      <mass value="${chassis_mass}"/>
-      <!-- SolidWorks CoM values (g·mm² ÷ 1e6 = kg·m²) -->
-      <!-- Lxx=127429709.05 Lyy=241607887.10 Lzz=115733366.82 -->
+      <mass value="${base_mass}"/>
       <inertia ixx="0.127430" ixy="0.0" ixz="0.0"
                iyy="0.241608" iyz="0.0"
                izz="0.115733"/>
@@ -194,17 +247,18 @@
   <!-- =========================================================
        DRIVE WHEELS
   ========================================================= -->
-
   <xacro:drive_wheel name="wheel_left"  y_sign="1"/>
   <xacro:drive_wheel name="wheel_right" y_sign="-1"/>
 
   <!-- =========================================================
-       CASTER WHEELS
+       CASTER WHEELS — 4 corners
+       NOTE: x_sign convention from STL analysis:
+         front casters: STL-Z=52.5  → robot_X = 52.5-250 = -197.5mm → x_sign=-1
+         rear  casters: STL-Z=447.5 → robot_X = 447.5-250= +197.5mm → x_sign=+1
   ========================================================= -->
-
-  <xacro:caster_wheel name="caster_front_left"  x_sign="1"  y_sign="1"/>
-  <xacro:caster_wheel name="caster_front_right" x_sign="1"  y_sign="-1"/>
-  <xacro:caster_wheel name="caster_rear_left"   x_sign="-1" y_sign="1"/>
-  <xacro:caster_wheel name="caster_rear_right"  x_sign="-1" y_sign="-1"/>
+  <xacro:caster_wheel name="caster_front_left"  x_sign="-1" y_sign="1"/>
+  <xacro:caster_wheel name="caster_front_right" x_sign="-1" y_sign="-1"/>
+  <xacro:caster_wheel name="caster_rear_left"   x_sign="1"  y_sign="1"/>
+  <xacro:caster_wheel name="caster_rear_right"  x_sign="1"  y_sign="-1"/>
 
 </robot>
