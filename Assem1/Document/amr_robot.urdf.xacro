@@ -1,0 +1,210 @@
+<?xml version="1.0"?>
+<robot name="amr_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- =========================================================
+       AMR ROBOT - URDF XACRO
+       PIDPEN Robotics Lab
+       ROS2 Jazzy
+
+       Robot Structure:
+         base_footprint
+         └── base_link  (chassis frame)
+             ├── left_wheel_joint       → left_wheel
+             ├── right_wheel_joint      → right_wheel
+             ├── front_left_caster_joint  → front_left_caster
+             ├── front_right_caster_joint → front_right_caster
+             ├── rear_left_caster_joint   → rear_left_caster
+             └── rear_right_caster_joint  → rear_right_caster
+
+       All dimensions in meters, mass in kg, inertia in kg·m²
+       Coordinate system: ROS REP-103
+         X = forward
+         Y = left
+         Z = up
+  ========================================================= -->
+
+  <!-- =========================================================
+       PROPERTIES
+  ========================================================= -->
+
+  <!-- Chassis -->
+  <xacro:property name="chassis_length"   value="0.250"/>
+  <xacro:property name="chassis_width"    value="0.445"/>
+  <xacro:property name="chassis_height"   value="0.020"/>
+  <xacro:property name="chassis_mass"     value="5.130"/>
+
+  <!-- Drive wheels -->
+  <xacro:property name="wheel_radius"     value="0.0625"/>
+  <xacro:property name="wheel_thickness"  value="0.030"/>
+  <xacro:property name="wheel_mass"       value="0.370"/>
+  <xacro:property name="wheel_x_offset"   value="0.0"/>
+  <xacro:property name="wheel_y_offset"   value="0.2125"/>
+  <xacro:property name="wheel_z_offset"   value="0.0"/>
+
+  <!-- Caster wheels -->
+  <xacro:property name="caster_radius"    value="0.0225"/>
+  <xacro:property name="caster_mass"      value="0.163"/>
+  <xacro:property name="caster_x_offset"  value="0.140"/>
+  <xacro:property name="caster_y_offset"  value="0.190"/>
+  <xacro:property name="caster_z_offset"  value="-0.0398"/>
+
+  <!-- =========================================================
+       MATERIAL DEFINITIONS
+  ========================================================= -->
+
+  <material name="aluminium">
+    <color rgba="0.75 0.75 0.75 1.0"/>
+  </material>
+
+  <material name="rubber_black">
+    <color rgba="0.1 0.1 0.1 1.0"/>
+  </material>
+
+  <material name="grey">
+    <color rgba="0.6 0.6 0.6 1.0"/>
+  </material>
+
+  <!-- =========================================================
+       DRIVE WHEEL MACRO
+  ========================================================= -->
+
+  <xacro:macro name="drive_wheel" params="name y_sign">
+
+    <link name="${name}">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://amr_description/meshes/${name}.STL"/>
+        </geometry>
+        <material name="rubber_black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- Simplified cylinder for collision -->
+          <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${wheel_mass}"/>
+        <!-- SolidWorks CoM values (g·mm² ÷ 1e6 = kg·m²) -->
+        <!-- Lxx=719243.09 Lyy=387910.92 Lzz=387910.92 -->
+        <inertia ixx="0.000719" ixy="0.0" ixz="0.0"
+                 iyy="0.000388" iyz="0.0"
+                 izz="0.000388"/>
+      </inertial>
+    </link>
+
+    <joint name="${name}_joint" type="continuous">
+      <parent link="base_link"/>
+      <child  link="${name}"/>
+      <origin xyz="${wheel_x_offset} ${y_sign * wheel_y_offset} ${wheel_z_offset}"
+              rpy="${pi/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+      <dynamics damping="0.01" friction="0.1"/>
+    </joint>
+
+  </xacro:macro>
+
+  <!-- =========================================================
+       CASTER WHEEL MACRO
+  ========================================================= -->
+
+  <xacro:macro name="caster_wheel" params="name x_sign y_sign">
+
+    <link name="${name}">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://amr_description/meshes/${name}.STL"/>
+        </geometry>
+        <material name="grey"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- Simplified sphere for collision -->
+          <sphere radius="${caster_radius}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${caster_mass}"/>
+        <!-- SolidWorks CoM values (g·mm² ÷ 1e6 = kg·m²) -->
+        <!-- Lxx=94899.90 Lyy=39844.80 Lzz=94899.90 -->
+        <inertia ixx="0.000095" ixy="0.0" ixz="0.0"
+                 iyy="0.000040" iyz="0.0"
+                 izz="0.000095"/>
+      </inertial>
+    </link>
+
+    <joint name="${name}_joint" type="fixed">
+      <parent link="base_link"/>
+      <child  link="${name}"/>
+      <origin xyz="${x_sign * caster_x_offset} ${y_sign * caster_y_offset} ${caster_z_offset}"
+              rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+  <!-- =========================================================
+       BASE FOOTPRINT
+  ========================================================= -->
+
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child  link="base_link"/>
+    <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- =========================================================
+       BASE LINK
+  ========================================================= -->
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_description/meshes/base_link.STL"/>
+      </geometry>
+      <material name="aluminium"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <!-- Simplified box for collision -->
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <!-- CoM from SolidWorks: X=0, Y=-1.04mm, Z=0 -->
+      <origin xyz="0.0 -0.00104 0.0" rpy="0 0 0"/>
+      <mass value="${chassis_mass}"/>
+      <!-- SolidWorks CoM values (g·mm² ÷ 1e6 = kg·m²) -->
+      <!-- Lxx=127429709.05 Lyy=241607887.10 Lzz=115733366.82 -->
+      <inertia ixx="0.127430" ixy="0.0" ixz="0.0"
+               iyy="0.241608" iyz="0.0"
+               izz="0.115733"/>
+    </inertial>
+  </link>
+
+  <!-- =========================================================
+       DRIVE WHEELS
+  ========================================================= -->
+
+  <xacro:drive_wheel name="wheel_left"  y_sign="1"/>
+  <xacro:drive_wheel name="wheel_right" y_sign="-1"/>
+
+  <!-- =========================================================
+       CASTER WHEELS
+  ========================================================= -->
+
+  <xacro:caster_wheel name="caster_front_left"  x_sign="1"  y_sign="1"/>
+  <xacro:caster_wheel name="caster_front_right" x_sign="1"  y_sign="-1"/>
+  <xacro:caster_wheel name="caster_rear_left"   x_sign="-1" y_sign="1"/>
+  <xacro:caster_wheel name="caster_rear_right"  x_sign="-1" y_sign="-1"/>
+
+</robot>
